@@ -548,15 +548,15 @@ public class AutomataOperations {
     public static AutomatonSpecification concatenation(
             final AutomatonSpecification automatonL, final AutomatonSpecification automatonR) {
 
-	AutomatonSpecification wsa;
+        AutomatonSpecification wsa;
         wsa = automatonL.clone();
-	List<State> statesL = new ArrayList<State>();
+        List<State> statesL = new ArrayList<State>();
         statesL.addAll(wsa.allStates());
 
         for (State state : statesL) {
             if (wsa.isFinal(state)) {
                 wsa.insert(state, automatonR);
-		wsa.unmarkAsFinalState(state);
+                wsa.unmarkAsFinalState(state);
             }
         }
 
