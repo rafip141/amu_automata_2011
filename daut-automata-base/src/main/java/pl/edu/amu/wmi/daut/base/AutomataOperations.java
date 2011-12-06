@@ -547,8 +547,8 @@ public class AutomataOperations {
       */
     public static AutomatonSpecification concatenation(
             final AutomatonSpecification automatonL, final AutomatonSpecification automatonR) {
-	
-	AutomatonSpecification wsa = new NaiveAutomatonSpecification();
+
+	AutomatonSpecification wsa;
         wsa = automatonL.clone();
 	List<State> statesL = new ArrayList<State>();
         statesL.addAll(wsa.allStates());
