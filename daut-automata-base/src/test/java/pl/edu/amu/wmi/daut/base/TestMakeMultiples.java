@@ -12,9 +12,9 @@ public class TestMakeMultiples extends TestCase {
 * Pierwszy test.
 */
     public final void test1() {
-       final AutomatonSpecification spec = new NaiveAutomatonSpecification();
+       
 
-	final AutomatonByStack automaton = new AutomatonByStack(spec.makeMultiples("a",5));
+	final AutomatonByStack automaton = new AutomatonByStack(AutomatonSpecification.makeMultiples("a",5));
 	      
         assertTrue(automaton.accepts(""));
         assertTrue(automaton.accepts("aaaaa"));
