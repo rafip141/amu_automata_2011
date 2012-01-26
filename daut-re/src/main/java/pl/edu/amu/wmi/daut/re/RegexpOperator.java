@@ -42,4 +42,14 @@ public abstract class RegexpOperator {
     protected abstract AutomatonSpecification doCreateAutomaton(
         List<AutomatonSpecification> subautomata);
 
+    /**
+     * Metoda zwracająca fabrykę operatora.
+     */
+    public abstract RegexpOperatorFactory getFactory();
+
+    /**
+     * Metoda zwracająca listę wszystkich parametrów.
+     */
+    public abstract List<String> getParams();
+
 };

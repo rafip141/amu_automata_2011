@@ -1,6 +1,5 @@
 package pl.edu.amu.wmi.daut.re;
 
-import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -9,17 +8,41 @@ import java.util.List;
  */
 public class ConvertRegexpOperatorTreeIntoRegexp {
 
-    public ConvertRegexpOperatorTreeIntoRegexp(RegexpOperatorManager man, RegexpOperatorTree tre) {
+    public ConvertRegexpOperatorTreeIntoRegexp(RegexpOperatorManager man) {
         manager = man;
-        tree = tre;
         allOperatorIds.addAll(manager.getAllOperatorIds());
     }
 
-    public String convert() {
-        List<RegexpOperatorTree> tempTree = new ArrayList<RegexpOperatorTree>();
+    public String convert(RegexpOperatorTree tree) {
+        StringBuffer buffer = new StringBuffer();
+
+        doConvert(buffer, tree);
+
+        return buffer.toString();
+    }
+
+    private void doConvert(StringBuffer buffer, RegexpOperatorTree tree) {
+
+        switch(tree.getRoot().arity()) {
+            case 0:
+                write(buffer, tree);
+                break;
+            case 1:
+                doConvert(buffer, tree.getSubtrees().get(0));
+                write(buffer, tree);
+                break;
+            case 2:
+                doConvert(buffer, tree.getSubtrees().get(0));
+                write(buffer, tree);
+                doConvert(buffer, tree.getSubtrees().get(1));
+                break;
+        }
+    }
+
+    private void write(StringBuffer buffer, RegexpOperatorTree tree) {
         RegexpOperator tempOperator;
         tempOperator = tree.getRoot();
-        String str = new String();
+
         List<String> listOfSeparators = new ArrayList<String>();
         List<String> listOfParams = new ArrayList<String>();
 
@@ -29,21 +52,18 @@ public class ConvertRegexpOperatorTreeIntoRegexp {
                 listOfSeparators.addAll(manager.getSeparators(id));
                 listOfParams.addAll(tempOperator.getParams());
 
-                String temp = new String();
-                for (String st : listOfSeparators) {
-                    if(!(st.toString() == "")) {
-                        temp.concat(st + listOfParams.remove(0));
+                for (String sep : listOfSeparators) {
+                    if (!listOfParams.isEmpty()) {
+                        buffer.append(sep + listOfParams.remove(0));
+                    } else {
+                        buffer.append(sep);
                     }
                 }
+                break;
             }
         }
-
-
-
-        return str;
     }
 
     RegexpOperatorManager manager = new RegexpOperatorManager();
     List<String> allOperatorIds = new ArrayList<String>();
-    RegexpOperatorTree tree;
 }
