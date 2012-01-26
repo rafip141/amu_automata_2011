@@ -6,6 +6,7 @@ import pl.edu.amu.wmi.daut.base.CharClassTransitionLabel;
 import pl.edu.amu.wmi.daut.base.NaiveAutomatonSpecification;
 import pl.edu.amu.wmi.daut.base.State;
 
+
 class UnknownAsciiCharacterClassException extends RuntimeException {
 }
 
@@ -14,43 +15,27 @@ class UnknownAsciiCharacterClassException extends RuntimeException {
  */
 public class AsciiCharacterClassOperator extends NullaryRegexpOperator {
     private String str;
+
     /**
-     * konstruktor ASCII character classes.
+     * Konstruktor ASCII character classes.
      */
-    public AsciiCharacterClassOperator(String a) {
-        if (a.equals("[:alnum:]")) {
-           str = "0-9A-Za-z";
-        } else if (a.equals("[:alpha:]")) {
-            str = "A-Za-z";
-        } else if (a.equals("[:blank:]")) {
-            str = "\t ";
-        } else if (a.equals("[:cntrl:]")) {
-            str = "\u0000-\u001F\u007F";
-        } else if (a.equals("[:digit:]")) {
-            str = "0-9";
-        } else if (a.equals("[:graph:]")) {
-            str = "!~-";
-        } else if (a.equals("[:lower:]")) {
-            str = "a-z";
-        } else if (a.equals("[:print:]")) {
-            str = " -~";
-        } else if (a.equals("[:punct:]")) {
-            str = "!-/:-@[-`{-~";
-        } else if (a.equals("[:space:]")) {
-            str = "\t\n\f\r \u000B";
-        } else if (a.equals("[:upper:]")) {
-            str = "A-Z";
-        } else if (a.equals("[:word:]")) {
-            str = "0-9A-Za-z_";
-        } else if (a.equals("[:xdigit:]")) {
-            str = "0-9A-Fa-f";
-        } else throw new UnknownAsciiCharacterClassException();
+    public AsciiCharacterClassOperator(String classString) {
+        transformToClassString(classString);
     }
+
+
+    private void transformToClassString(String a) {
+        str = AsciiCharacterClasses.CLASS_MAP.get(a);
+        if (str == null)
+            throw new UnknownAsciiCharacterClassException();
+    }
+
     /**
      * Generuje automat.
      */
     @Override
     public AutomatonSpecification createFixedAutomaton() {
+
         AutomatonSpecification automaton = new NaiveAutomatonSpecification();
         State q0 = automaton.addState();
         State q1 = automaton.addState();
@@ -61,6 +46,7 @@ public class AsciiCharacterClassOperator extends NullaryRegexpOperator {
 
         return automaton;
     }
+
     /**
      * Fabryka operatora.
      */
@@ -75,5 +61,13 @@ public class AsciiCharacterClassOperator extends NullaryRegexpOperator {
         public int numberOfParams() {
             return 1;
         }
+    }
+
+    /**
+     * Metoda toString().
+     */
+    @Override
+    public String toString() {
+        return "ASCII";
     }
 }

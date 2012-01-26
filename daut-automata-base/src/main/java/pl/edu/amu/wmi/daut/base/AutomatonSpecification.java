@@ -568,6 +568,7 @@ public abstract class AutomatonSpecification implements Cloneable  {
     /**
      * Zwraca true, gdy automat akceptuje napis pusty.
      */
+
     public boolean acceptEmptyWord() {
 
         List<State> tocheck = new ArrayList<State>();
@@ -586,13 +587,13 @@ public abstract class AutomatonSpecification implements Cloneable  {
             transitions.clear();
             transitions = allOutgoingTransitions(tocheck.get(i));
 
-            for (int j = 0; j < transitions.size(); ++j) {
-                label = transitions.get(j).getTransitionLabel();
-                state = transitions.get(j).getTargetState();
+            for (OutgoingTransition j : transitions) {
+                label = j.getTransitionLabel();
+                state = j.getTargetState();
 
                 if (label.canBeEpsilon() && !tocheck.contains(state)) {
                     tocheck.add(state);
-                    iterator++;
+                    ++iterator;
 
                     if (isFinal(state)) {
                         return true;
@@ -602,6 +603,7 @@ public abstract class AutomatonSpecification implements Cloneable  {
         }
         return false;
     }
+
 
     /**
      * Sprawdza, czy w automacie istnieją zbędne stany.
@@ -786,21 +788,49 @@ public abstract class AutomatonSpecification implements Cloneable  {
         return words;
     }
 
+
     /**
      * Sprawdza, czy akceptowany język jest nieskończony.
      */
     public boolean isInfinite() {
-        return findFinals(getInitialState(), new ArrayList<State>());
+        return checkForLoop(getInitialState(), new ArrayList<State>(), false);
     }
 
-    private boolean findFinals(State state, List<State> history) {
+    private boolean checkForLoop(State state, List<State> history, boolean flag) {
+
+        for (State his : history)
+            if (his == state)
+                return findFinals(state, new ArrayList<State>(), flag);
+
+        if (allOutgoingTransitions(state).isEmpty())
+            return false;
+
+        history.add(state);
+
+        boolean result = false;
+        for (OutgoingTransition child : allOutgoingTransitions(state)) {
+            if (!child.getTransitionLabel().canBeEpsilon())
+                flag = true;
+            List<State> newHistory = new ArrayList<State>();
+            for (State s : history)
+                newHistory.add(s);
+                result = result || checkForLoop(child.getTargetState(), newHistory, flag);
+            if (result)
+                break;
+        }
+        return result;
+    }
+
+    private boolean findFinals(State state, List<State> history, boolean flag) {
         boolean result = false;
 
-        if (isFinal(state))
-            result = result || checkForLoop(state, new ArrayList<State>());
+        if (isFinal(state)) {
+            for (OutgoingTransition transition : allOutgoingTransitions(state))
+                if (transition.getTargetState() == state)
+                    return !(transition.getTransitionLabel().canBeEpsilon());
+            return flag;
+        }
 
-        if (allOutgoingTransitions(state).size() == 0)
-            return false;
 
         for (State his : history)
             if (his == state)
@@ -808,32 +838,12 @@ public abstract class AutomatonSpecification implements Cloneable  {
 
         history.add(state);
 
+
         for (OutgoingTransition child : allOutgoingTransitions(state)) {
             List<State> newHistory = new ArrayList<State>();
             for (State s : history)
                 newHistory.add(s);
-            result = result || findFinals(child.getTargetState(), newHistory);
-            if (result)
-                break;
-        }
-        return result;
-    }
-
-    private boolean checkForLoop(State state, List<State> history) {
-        for (State his : history)
-            if (his == state)
-                return isFinal(state);
-
-        if (allOutgoingTransitions(state).size() == 0)
-            return false;
-
-        history.add(state);
-        boolean result = false;
-        for (OutgoingTransition child : allOutgoingTransitions(state)) {
-            List<State> newHistory = new ArrayList<State>();
-            for (State s : history)
-                newHistory.add(s);
-            result = result || checkForLoop(child.getTargetState(), newHistory);
+            result = result || findFinals(child.getTargetState(), newHistory, flag);
             if (result)
                 break;
         }
@@ -851,6 +861,7 @@ public abstract class AutomatonSpecification implements Cloneable  {
         char[] tmp = alphabet.toCharArray();
         java.util.Arrays.sort(tmp);
         String sorted = new String(tmp);
+        String word = "";
         int l = alphabet.length();
         int x = 1;
         if (this.isEmpty())
@@ -879,12 +890,11 @@ public abstract class AutomatonSpecification implements Cloneable  {
                                     z++;
                             }
                             searchWord[flag - 1] = sorted.charAt(y);
-                            if (flag - 1 == 0) {
-                                flag = x;
-                                while (flag > 1) {
-                                    searchWord[flag - 1] = sorted.charAt(0);
-                                    flag--;
-                                }
+                            int tempFlag = flag;
+                            flag = x;
+                            while (flag > tempFlag) {
+                                searchWord[flag - 1] = sorted.charAt(0);
+                                flag--;
                             }
                             flag = 0;
                         }
@@ -894,15 +904,14 @@ public abstract class AutomatonSpecification implements Cloneable  {
                 searchWord[x - 1] = tmp[i % alphabet.length()];
                 String acceptedWord = new String(searchWord);
                 if (a.accepts(acceptedWord)) {
+                    word = acceptedWord;
                     found = true;
-                    return acceptedWord;
                 }
             }
-            l = l * l;
             x++;
-        } while (!found);
-
-        throw new RuntimeException("error");
+            l = l * alphabet.length();
+        } while(!found);
+        return word;
     }
     /**
      *Metoda zwraca długość najdłuższego słowa akceptowanego.
@@ -935,36 +944,8 @@ public abstract class AutomatonSpecification implements Cloneable  {
      * Tworzy epsilon domknięcie zadanego stanu.
      */
     public Set<State> getEpsilonClosure(State initial) {
-
-        Set<State> epsilonClosure = new HashSet<State>();
-        Set<State> visited = new HashSet<State>();
-        Stack<State> stack = new Stack<State>();
-        stack.push(initial);
-        epsilonClosure.add(initial);
-
-        while (!stack.empty()) {
-            State from = stack.pop();
-            if (visited.contains(from)) {
-                continue;
-            }
-            visited.add(from);
-            for (OutgoingTransition trans : allOutgoingTransitions(from)) {
-                TransitionLabel label = trans.getTransitionLabel();
-                State to = trans.getTargetState();
-                if (label.canBeEpsilon()) {
-                    epsilonClosure.add(to);
-                    stack.push(to);
-                }
-            }
-        }
-
-        return epsilonClosure;
-    }
-    /**
-     * Odznacza końcowy stan.
-     */
-    public void unmarkedAsFinalState(State state) {
-        getFinalStates().remove(state);
+        AlwaysAcceptingContextChecker contextChecker = new AlwaysAcceptingContextChecker();
+        return doGetEpsilonClosure(initial, contextChecker);
     }
     /**
      * Dla podanego automatu tworzy równoważny automat z 1 stanem końcowym.
@@ -996,7 +977,7 @@ public abstract class AutomatonSpecification implements Cloneable  {
                 spec.clone();
                 State stateFinal = spec.addState();
                 for (State someState : allFinalStates) {
-                    spec.unmarkedAsFinalState(someState);
+                    spec.unmarkAsFinalState(someState);
                     spec.addTransition(someState, stateFinal, new EpsilonTransitionLabel());
                     return spec;
                 }
@@ -1006,6 +987,46 @@ public abstract class AutomatonSpecification implements Cloneable  {
 
     protected List<State> getFinalStates() {
         return finalStatess;
+    }
+
+    /**
+     * Zwraca epsilon domknięcie zadanego stanu, z uwzględnieniem warunków kontekstowych.
+     */
+    public Set<State> getEpsilonClosureWithContext(State initial, String s, int position) {
+        ReallyCheckingContextChecker contextChecker =
+                new ReallyCheckingContextChecker(s, position);
+        return doGetEpsilonClosure(initial, contextChecker);
+    }
+
+    /**
+     * Metoda wyszukująca epsilon domknięcie.
+     */
+    private Set<State> doGetEpsilonClosure(State initial, ContextChecker contextChecker) {
+        Set<State> epsilonClosure = new HashSet<State>();
+        Set<State> visited = new HashSet<State>();
+        Stack<State> stack = new Stack<State>();
+
+        stack.push(initial);
+        epsilonClosure.add(initial);
+
+        while (!stack.empty()) {
+            State from = stack.pop();
+            if (visited.contains(from)) {
+                continue;
+            }
+            visited.add(from);
+
+            for (OutgoingTransition trans : allOutgoingTransitions(from)) {
+                TransitionLabel label = trans.getTransitionLabel();
+                State to = trans.getTargetState();
+                if (label.canBeEpsilon() && contextChecker.check(label)) {
+                    epsilonClosure.add(to);
+                    stack.push(to);
+                }
+            }
+
+        }
+        return epsilonClosure;
     }
 
     private LinkedList<State> finalStatess = new LinkedList<State>();
